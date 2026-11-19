@@ -88,7 +88,30 @@ Encoder / Decoder   : 可用（0% 占用，未被屏蔽）
 
 ---
 
-## 快速开始
+## 一键安装
+
+**新手请直接看 [TUTORIAL.md](TUTORIAL.md)（带截图式步骤的完整安装教程）。**
+
+```bash
+# 1. 内核头文件
+sudo apt install -y linux-headers-$(uname -r)
+
+# 2. 下载安装脚本（不要用 curl | bash，sudo/apt 提示会读不到输入）
+curl -fsSL -o ~/install.sh \
+  https://raw.githubusercontent.com/YOUR_GITHUB_USER/CMP30HX-on-linux/main/install.sh
+
+# 3. 一键安装（自动装依赖、下载驱动、打补丁、编译、安装、加载）
+sudo bash ~/install.sh
+```
+
+首次安装后如果提示需要重启（nouveau 在启动早期就加载了），重启一次即可：
+
+```bash
+sudo reboot
+sudo modprobe nvidia && sudo modprobe nvidia-uvm && nvidia-smi
+```
+
+## 从源码构建（进阶，不需要 root）
 
 ### 依赖
 
