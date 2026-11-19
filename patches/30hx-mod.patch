@@ -1,0 +1,133 @@
+--- a/Kbuild
++++ b/Kbuild
+@@ -106,6 +106,12 @@
+ ccflags-y += -I$(src)
+ ccflags-y += -Wall $(DEFINES) $(INCLUDES) -Wno-cast-qual -Wno-format-extra-args
+ ccflags-y += -D__KERNEL__ -DMODULE -DNVRM
++# [30HX-mod] conftest.sh single-quotes $(NV_CONFTEST_CFLAGS), so the escaped
++# quotes of the upstream define arrive at the compiler literally and break the
++# compile tests; an unescaped "-DVERSION=615.78.08" is then parsed as 615.78
++# .08.  Give conftest the version string without dots for the define and keep
++# the original (quoted) form for the module sources.
++NV_VERSION_STRING_CONFTEST := 615_78_08
+ ccflags-y += -DNV_VERSION_STRING=\"615.78.08\"
+ 
+ # Include and link Tegra out-of-tree modules.
+@@ -159,6 +165,14 @@
+ 
+ ifeq ($(ARCH),x86_64)
+  ccflags-y += -mno-red-zone -mcmodel=kernel
++ # [30HX-mod] Harden the out-of-tree module the same way in-tree x86 code is
++ # hardened on modern distro kernels: SLS/IBT shims (CONFIG_SLS / IBT) and
++ # retpoline with external thunks (CONFIG_RETHUNK).  Each flag is probed so
++ # that compilers that do not support it are silently skipped.
++ ccflags-y += $(call cc-option,-mharden-sls=all,)
++ ccflags-y += $(call cc-option,-mindirect-branch=thunk-extern,)
++ ccflags-y += $(call cc-option,-mindirect-branch-register,)
++ ccflags-y += $(call cc-option,-fno-jump-tables,)
+ endif
+ 
+ ccflags-y += -DNV_UVM_ENABLE
+@@ -209,7 +223,9 @@
+ 
+ NV_CFLAGS_FROM_CONFTEST := $(shell $(NV_CONFTEST_CMD) build_cflags)
+ 
+-NV_CONFTEST_CFLAGS = $(NV_CFLAGS_FROM_CONFTEST) $(ccflags-y) -fno-pie
++NV_CONFTEST_CFLAGS = $(NV_CFLAGS_FROM_CONFTEST) \
++ $(patsubst -DNV_VERSION_STRING=%,-DNV_VERSION_STRING=$(NV_VERSION_STRING_CONFTEST),$(ccflags-y)) \
++ -fno-pie
+ NV_CONFTEST_CFLAGS += $(filter -std=%,$(KBUILD_CFLAGS))
+ NV_CONFTEST_CFLAGS += $(call cc-disable-warning,pointer-sign)
+ NV_CONFTEST_CFLAGS += $(call cc-option,-fshort-wchar,)
+--- a/Makefile
++++ b/Makefile
+@@ -110,10 +110,19 @@
+ 
+   export ORIG_PAHOLE := $(PAHOLE)
+ 
++  # [30HX-mod] Kernel 7.x generates module BTF through scripts/gen-btf.sh
++  # (replacing scripts/pahole-flags.sh) and expects BTF generation to fall
++  # back gracefully when pahole is unavailable instead of aborting the build.
++  # pahole.sh forwards PAHOLE_FLAGS to the real pahole, so pass them through.
++  PAHOLE_ENV := PAHOLE=$(CURDIR)/pahole.sh
++  ifneq ($(KERNELRELEASE),)
++    PAHOLE_ENV += PAHOLE_FLAGS="$(PAHOLE_FLAGS)"
++  endif
++
+   .PHONY: modules module clean clean_conftest modules_install
+   modules clean modules_install:
+-	@$(MAKE) "LD=$(LD)" "CC=$(CC)" "OBJDUMP=$(OBJDUMP)" \
+-	  PAHOLE=$(CURDIR)/pahole.sh $(KBUILD_PARAMS) $@
++	@$(MAKE) "LD=$(LD)" "CC=$(CC)" "OBJDUMP=$(OBJDUMP)" "AWK=$(AWK)" \
++	  $(PAHOLE_ENV) $(KBUILD_PARAMS) $@
+ 	@if [ "$@" = "modules" ]; then \
+ 	  for module in $(NV_KERNEL_MODULES); do \
+ 	    if [ -x split-object-file.sh ]; then \
+--- a/nvidia/nv-pci-table.c
++++ b/nvidia/nv-pci-table.c
+@@ -51,7 +51,14 @@
+         .subvendor   = PCI_ANY_ID,
+         .subdevice   = PCI_ANY_ID,
+         .class       = (PCI_CLASS_DISPLAY_3D << 8),
+-        .class_mask  = ~0
++        /*
++         * [30HX-mod] The CMP 30HX (10de:2189) is a display-less Turing card
++         * that reports the 0x0302 "3D controller" class code. Compare only
++         * the upper byte of the class register (base class + subclass) so
++         * that binding does not depend on the programming-interface byte
++         * that the VBIOS happens to report.
++         */
++        .class_mask  = 0xff0000
+     },
+     { }
+ };
+@@ -72,7 +79,14 @@
+         .subvendor   = PCI_ANY_ID,
+         .subdevice   = PCI_ANY_ID,
+         .class       = (PCI_CLASS_DISPLAY_3D << 8),
+-        .class_mask  = ~0
++        /*
++         * [30HX-mod] The CMP 30HX (10de:2189) is a display-less Turing card
++         * that reports the 0x0302 "3D controller" class code. Compare only
++         * the upper byte of the class register (base class + subclass) so
++         * that binding does not depend on the programming-interface byte
++         * that the VBIOS happens to report.
++         */
++        .class_mask  = 0xff0000
+     },
+     {
+         .vendor      = PCI_VENDOR_ID_NVIDIA,
+--- a/nvidia-drm/nv-pci-table.c
++++ b/nvidia-drm/nv-pci-table.c
+@@ -51,7 +51,14 @@
+         .subvendor   = PCI_ANY_ID,
+         .subdevice   = PCI_ANY_ID,
+         .class       = (PCI_CLASS_DISPLAY_3D << 8),
+-        .class_mask  = ~0
++        /*
++         * [30HX-mod] The CMP 30HX (10de:2189) is a display-less Turing card
++         * that reports the 0x0302 "3D controller" class code. Compare only
++         * the upper byte of the class register (base class + subclass) so
++         * that binding does not depend on the programming-interface byte
++         * that the VBIOS happens to report.
++         */
++        .class_mask  = 0xff0000
+     },
+     { }
+ };
+@@ -72,7 +79,14 @@
+         .subvendor   = PCI_ANY_ID,
+         .subdevice   = PCI_ANY_ID,
+         .class       = (PCI_CLASS_DISPLAY_3D << 8),
+-        .class_mask  = ~0
++        /*
++         * [30HX-mod] The CMP 30HX (10de:2189) is a display-less Turing card
++         * that reports the 0x0302 "3D controller" class code. Compare only
++         * the upper byte of the class register (base class + subclass) so
++         * that binding does not depend on the programming-interface byte
++         * that the VBIOS happens to report.
++         */
++        .class_mask  = 0xff0000
+     },
+     {
+         .vendor      = PCI_VENDOR_ID_NVIDIA,

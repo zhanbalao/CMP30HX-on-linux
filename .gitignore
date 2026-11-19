@@ -1,0 +1,7 @@
+# build workspace (official .run, extracted sources, staged headers)
+.work/
+# build output
+dist/
+# the official driver package is never committed
+*.run
+*.run.*
