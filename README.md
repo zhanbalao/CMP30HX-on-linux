@@ -13,7 +13,7 @@
 git clone https://github.com/zhanbalao/CMP30HX-on-linux.git
 cd CMP30HX-on-linux
 
-# 2. 把官方驱动包放进仓库根目录（离线安装，不联网）
+# 2. 把官方驱动包放进仓库根目录（这一步可选，见下方说明）
 cp ~/下载/NVIDIA-Linux-x86_64-615.78.08.run .
 
 # 3. 切到 root，进仓库目录，运行脚本
@@ -22,10 +22,49 @@ cd /home/你的用户名/CMP30HX-on-linux
 ./install.sh
 ```
 
-就这三步。脚本跑完会直接打印 `nvidia-smi` 的结果；如果提示要重启，重启后再执行一次 `./install.sh` 即可。
+脚本跑完会直接打印 `nvidia-smi` 的结果；如果提示要重启，重启后再执行一次 `./install.sh` 即可。
 
-> 驱动包从 [NVIDIA 官网](https://www.nvidia.com/en-us/drivers/) 下载，文件名必须是 `NVIDIA-Linux-x86_64-615.78.08.run`。
-> 不放进去也行，脚本会自己下载（约 505 MB）。
+---
+
+### 关于 `NVIDIA-Linux-x86_64-615.78.08.run`
+
+**克隆下来的仓库里没有这个文件**，它被 `.gitignore` 排除了（505 MB 超过 GitHub 单文件 100 MB 限制）。
+脚本按下面的顺序找它，**找到第一个就停**：
+
+| 顺序 | 位置 | 说明 |
+|---:|---|---|
+| 1 | `你的克隆目录/NVIDIA-Linux-x86_64-615.78.08.run` | 你手动放的，完全离线 ✅ |
+| 2 | `你的克隆目录/.work/` | 上次下载的缓存，重跑不用再下 |
+| 3 | `~`、`/root`、`~/Downloads`、`~/下载` | 常见的下载目录 |
+| 4 | 挂载的 U 盘 | `/run/media/*`、`/media/*` |
+| 5 | 本仓库 Release 附件 | 自动下载，约 505 MB |
+| 6 | NVIDIA 官方源 | 兜底，约 505 MB |
+
+**三种用法，任选其一：**
+
+**① 完全离线（推荐）**：先把驱动包放到仓库根目录
+
+```bash
+# 从 NVIDIA 官网下载：https://www.nvidia.com/en-us/drivers/
+# 文件名必须是 NVIDIA-Linux-x86_64-615.78.08.run
+cp ~/下载/NVIDIA-Linux-x86_64-615.78.08.run ~/CMP30HX-on-linux/
+cd ~/CMP30HX-on-linux && sudo ./install.sh
+```
+
+**② 用本仓库托管的那份**：不放文件，脚本自动从
+[Release](https://github.com/zhanbalao/CMP30HX-on-linux/releases/tag/615.78.08) 下载
+
+```bash
+cd ~/CMP30HX-on-linux && sudo ./install.sh
+```
+
+**③ 已经放过一次**：文件会留在 `.work/`，之后重跑、升级内核重编都不会再下载。
+
+> 驱动包会被校验：大小需约 505 MB（不足会报错），并且文件头必须是 `#!` 自解压脚本。
+> 校验不通过会**明确报错**，不会静默改用下载。
+>
+> `.run` 为什么不能提交进 git：GitHub 单文件上限 100 MB，仓库里存 505 MB 的二进制会被 push 拒绝；
+> 用 Git LFS 又要吃每月的免费流量。所以放 Release 附件，仓库只保留 116 KB 的代码和文档。
 
 ---
 
@@ -227,9 +266,9 @@ sudo ./install.sh      # 重启后重跑，会自动加载
 ├── uninstall.sh          # 卸载
 ├── patches/
 │   └── 30hx-mod.patch    # 全部魔改
-├── NVIDIA-Linux-x86_64-615.78.08.run   # 官方驱动包（自行放入，不入库）
+├── NVIDIA-Linux-x86_64-615.78.08.run   # 官方驱动包，需自行放入（.gitignore 排除，不入库）
 ├── README.md / TUTORIAL.md / TESTPLAN.md
-└── licenses/
+└── licenses/NVIDIA-615.78.08-LICENSE.txt
 ```
 
 ---
