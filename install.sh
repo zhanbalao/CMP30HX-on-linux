@@ -155,6 +155,7 @@ have_all_deps() {
 }
 
 install_deps() {
+    # 只有在确实缺工具/头文件时才会走到这里，此时才需要刷新索引
     case "$PKG" in
         apt-get)
             run apt-get update -qq || warn "apt-get update 失败，继续尝试安装"
@@ -292,6 +293,7 @@ step
 # [5/7] 获取官方驱动包
 # ---------------------------------------------------------------------------
 say "准备 NVIDIA 615.78.08 官方驱动包"
+info "脚本直接使用当前目录的仓库，不会重新 clone / pull"
 
 RUN_NAME="NVIDIA-Linux-x86_64-615.78.08.run"
 RUN_VERSION=615.78.08
@@ -332,7 +334,7 @@ done
 
 # 校验：大小下限（官方包约 505MB）+ 文件头（自解压 shell 脚本）
 if [ -n "$RUNFILE" ]; then
-    RSIZE=$(stat -c %s "$RUNFILE" 2>/dev/null || echo 0)
+    RSIZE=$(stat -Lc %s "$RUNFILE" 2>/dev/null || echo 0)
     if [ "$RSIZE" -lt 400000000 ]; then
         fail "驱动包不完整：$RUNFILE（$((RSIZE/1048576)) MB，官方约 505 MB）
   请重新下载完整文件，或删除后让脚本自动下载：
@@ -346,7 +348,7 @@ if [ -n "$RUNFILE" ]; then
 fi
 
 if [ -n "$RUNFILE" ]; then
-    ok "使用仓库/本地驱动包（离线模式，不联网）：$RUNFILE"
+    ok "使用仓库根目录/本地的驱动包，全程不需要联网：$RUNFILE"
     if [ "$RUNFILE" != "$WORK/$RUN_NAME" ]; then
         mkdir -p "$WORK"
         info "复制到工作目录（避免 U 盘/FUSE 上执行安装器）"
@@ -354,7 +356,8 @@ if [ -n "$RUNFILE" ]; then
         RUNFILE=$WORK/$RUN_NAME
     fi
 else
-    info "未找到本地驱动包，开始下载（约 505 MB）"
+    info "仓库根目录没有 .run，改为下载（约 505 MB）"
+    info "  想完全离线：把 NVIDIA-Linux-x86_64-615.78.08.run 放进 $REPO_DIR/ 再运行"
     mkdir -p "$WORK"
     dl() {
         if command -v curl >/dev/null 2>&1; then
