@@ -21,7 +21,7 @@
 #      JOBS=<并行数>        默认 nproc
 #      FORCE=1              已装也强制重装
 #      SKIP_DEPS=1          不自动安装依赖
-#      NO_NEWVOUX=1         不改内核命令行 / 不重建 initramfs
+#      SKIP_BOOT_FIX=1      不改 grub / initramfs（仍写 modprobe 黑名单）
 #      REBOOT=1             需要重启时自动重启（默认只是提示）
 #      NO_COLOR=1           关闭彩色输出
 # ============================================================================
@@ -35,7 +35,6 @@ KVER=${KVER:-$(uname -r)}
 JOBS=${JOBS:-$(nproc)}
 FORCE=${FORCE:-0}
 SKIP_DEPS=${SKIP_DEPS:-0}
-NO_NEWVOUX=${NO_NEWVOUX:-0}
 REBOOT=${REBOOT:-0}
 LOG=$REPO_DIR/.work/install.log
 NEED_REBOOT=0
@@ -364,8 +363,8 @@ step
 # ---------------------------------------------------------------------------
 say "安装并加载驱动"
 
-if ! run env KVER="$KVER" bash "$REPO_DIR/build.sh" --install; then
-    env KVER="$KVER" bash "$REPO_DIR/build.sh" --install || fail "安装失败"
+if ! run env KVER="$KVER" SKIP_BOOT_FIX="${SKIP_BOOT_FIX:-0}" bash "$REPO_DIR/build.sh" --install; then
+    env KVER="$KVER" SKIP_BOOT_FIX="${SKIP_BOOT_FIX:-0}" bash "$REPO_DIR/build.sh" --install || fail "安装失败"
 fi
 
 # 判断是否需要重启
@@ -387,7 +386,8 @@ if [ "$NEED_REBOOT" -eq 1 ]; then
     printf '%s============================================================%s\n' "$Y" "$N"
     say ""
     if lsmod | grep -q '^nouveau'; then
-        say "  原因：nouveau（开源驱动）在开机早期就占用了显卡，屏蔽规则要重启才生效。"
+        say "  原因：nouveau（开源驱动）正在占用显卡，屏蔽规则要重启才生效。"
+        [ "${SKIP_BOOT_FIX:-0}" = "1" ] && say "  （你设置了 SKIP_BOOT_FIX=1，重启后请手动执行 modprobe -r nouveau 再 modprobe nvidia）"
     else
         say "  原因：目标内核 $KVER 与当前运行内核 $(uname -r) 不同，或模块尚未自动加载。"
     fi

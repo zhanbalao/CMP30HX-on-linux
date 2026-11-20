@@ -253,8 +253,10 @@ blacklist nouveau
 install nouveau /bin/false
 options nouveau modeset=0
 CONF
-    if [ -d /etc/initramfs-tools ]; then update-initramfs -u -k "$KVER" >/dev/null 2>&1 || true; fi
-    if [ -f /etc/default/grub ] && ! grep -q 'nouveau.modeset=0' /etc/default/grub; then
+    if [ "${SKIP_BOOT_FIX:-0}" = "1" ]; then
+        log "SKIP_BOOT_FIX=1: 跳过 initramfs 与 grub 修改"
+    elif [ -d /etc/initramfs-tools ]; then update-initramfs -u -k "$KVER" >/dev/null 2>&1 || true; fi
+    if [ "${SKIP_BOOT_FIX:-0}" != "1" ] && [ -f /etc/default/grub ] && ! grep -q 'nouveau.modeset=0' /etc/default/grub; then
         cp -f /etc/default/grub /etc/default/grub.bak.cmp30hx
         if grep -q '^GRUB_CMDLINE_LINUX_DEFAULT="' /etc/default/grub; then
             sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT="\(.*\)"/GRUB_CMDLINE_LINUX_DEFAULT="\1 nouveau.modeset=0 rd.driver.blacklist=nouveau"/' /etc/default/grub
