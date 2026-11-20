@@ -16,7 +16,7 @@ for a in "$@"; do
     case "$a" in
         --keep-userspace) KEEP_USER=1 ;;
         --restore-grub) RESTORE_GRUB=1 ;;
-        -h|--help) sed -n '2,12p' "$0"; exit 0 ;;
+        -h|--help) sed -n '2,8p' "$0"; exit 0 ;;
         *) echo "未知参数：$a" >&2; exit 2 ;;
     esac
 done

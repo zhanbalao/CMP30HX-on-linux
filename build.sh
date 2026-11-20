@@ -63,6 +63,29 @@ need_root() { [ "$(id -u)" -eq 0 ] || die "--install needs root: sudo $0 --insta
 # 0. sanity checks
 # ---------------------------------------------------------------------------
 log "host: $(uname -s) $(uname -r) ($(uname -m)), target kernel: $KVER"
+
+# A first build needs roughly 3.5 GB (1.8 GB extracted sources + 0.3 GB staged
+# headers + 1.5 GB objects); rebuilding an already extracted tree needs far
+# less.  Failing late on "No space left on device" is confusing, so check the
+# available space up front and say exactly what to free.
+if [ -d "$SRC/kernel-open" ]; then
+    need_kb=$(( 2 * 1024 * 1024 ))
+    space_note="rebuild of an extracted tree"
+else
+    need_kb=$(( 4 * 1024 * 1024 ))
+    space_note="full build (extract + compile)"
+fi
+mkdir -p "$WORK" 2>/dev/null || true
+# resolve to a directory that exists so df answers for the right filesystem
+probe=$WORK
+while [ ! -d "$probe" ] && [ "$probe" != "/" ]; do probe=$(dirname "$probe"); done
+avail_kb=$(df -Pk "$probe" 2>/dev/null | awk 'NR==2{print $4}')
+if [ -n "${avail_kb:-}" ] && [ "$avail_kb" -lt "$need_kb" ]; then
+    die "not enough free space in $probe: $((avail_kb/1024)) MiB available, ~$((need_kb/1024)) MiB needed for a $space_note.
+  Free some space, or put the workspace on another filesystem:
+      WORK=/path/with/space ./build.sh
+  Already extracted a tree you no longer need?  rm -rf $WORK"
+fi
 [ "$(uname -m)" = "x86_64" ] || die "this driver only supports x86_64"
 [ -f "$HEADERS/.config" ] || die "kernel headers not found: $HEADERS
   install them first:  apt-get install -y linux-headers-$KVER"
@@ -200,9 +223,27 @@ SHIM=$WORK/placeholder.mk
     echo 'endif'
 } > "$SHIM"
 
-# keep the untouched Makefile around: the build shim must never re-enter
+# Keep the untouched Makefile around: the build shim must never re-enter
 # itself, and the original is what $(src)/Makefile includes normally.
-cp -f "$MODDIR/Makefile" "$MODDIR/Makefile.nvidia"
+# A build that was interrupted (Ctrl-C, OOM, power loss) leaves the shim in
+# place, so never overwrite an existing good backup with shim content -- that
+# would destroy the original Makefile and every later build would fail.
+SHIM_MARK='temporary kbuild entry shim'
+if [ -f "$MODDIR/Makefile.nvidia" ] && ! grep -q "$SHIM_MARK" "$MODDIR/Makefile.nvidia"; then
+    # A previous run left a valid backup behind: restore from it first.
+    log "recovering from an interrupted build (Makefile from backup)"
+    cp -f "$MODDIR/Makefile.nvidia" "$MODDIR/Makefile"
+elif grep -q "$SHIM_MARK" "$MODDIR/Makefile" 2>/dev/null; then
+    # Only reachable after a hard kill (SIGKILL/power loss): a normal Ctrl-C
+    # runs the EXIT trap and restores the file.
+    die "a previous build was killed and left the temporary shim in place:
+  $MODDIR/Makefile
+  Re-extract the driver sources (the patch is re-applied automatically):
+      rm -rf $SRC
+  then run this script again."
+else
+    cp -f "$MODDIR/Makefile" "$MODDIR/Makefile.nvidia"
+fi
 cp -f "$SHIM" "$MODDIR/Makefile"
 trap 'cp -f "$MODDIR/Makefile.nvidia" "$MODDIR/Makefile"' EXIT
 

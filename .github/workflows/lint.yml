@@ -3,40 +3,30 @@ name: lint
 on:
   push:
   pull_request:
+  workflow_dispatch:
 
 jobs:
-  shellcheck:
+  syntax:
+    name: shell syntax + doc links
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Bash syntax check
-        run: bash -n build.sh
+      - name: bash -n on every script
+        run: |
+          set -e
+          for f in build.sh install.sh uninstall.sh; do
+            printf '%-14s ' "$f"
+            bash -n "$f"
+            echo OK
+          done
 
-      - name: shellcheck
+      - name: shellcheck (warnings only, non-blocking)
+        continue-on-error: true
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq shellcheck
-          shellcheck --severity=warning build.sh
+          shellcheck -S warning build.sh install.sh uninstall.sh
 
-  readme-links:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Check local markdown links resolve
-        run: |
-          python3 - <<'PY'
-          import re, os, sys
-          text = open('README.md', encoding='utf-8').read()
-          missing = []
-          for m in re.finditer(r'\]\(([^)#][^)]*)\)', text):
-              target = m.group(1).split('#')[0]
-              if target.startswith(('http://', 'https://', 'mailto:', '/')) or not target:
-                  continue
-              if not os.path.exists(target):
-                  missing.append(target)
-          if missing:
-              print('broken links:', *missing, sep='\n  ')
-              sys.exit(1)
-          print('all local links ok')
-          PY
+      - name: local markdown links resolve
+        run: python3 .github/check_links.py

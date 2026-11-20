@@ -162,8 +162,10 @@ sudo tee /etc/modprobe.d/nvidia-gsp.conf >/dev/null <<'EOF'
 options nvidia NVreg_EnableGpuFirmware=0
 EOF
 
-# 3. 内核参数（也可以只用上面第 2 步，两者二选一或都加）
-sudo sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT="\(.*\)"/GRUB_CMDLINE_LINUX_DEFAULT="\1 nvidia.NVreg_EnableGpuFirmware=0"/' /etc/default/grub
+# 3. 内核参数（第 2 步已能生效，这步是可选的加强）
+#    先确认还没加过，避免重复执行时把参数叠加两次
+grep -q 'nvidia.NVreg_EnableGpuFirmware=0' /etc/default/grub || \
+  sudo sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT="\(.*\)"/GRUB_CMDLINE_LINUX_DEFAULT="\1 nvidia.NVreg_EnableGpuFirmware=0"/' /etc/default/grub
 sudo update-grub && sudo update-initramfs -u -k all
 
 # 4. 重启后验证

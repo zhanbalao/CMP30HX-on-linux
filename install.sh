@@ -47,9 +47,6 @@ else
     B=$'\033[1;34m'; G=$'\033[1;32m'; R=$'\033[1;31m'; Y=$'\033[1;33m'; C=$'\033[1;36m'; N=$'\033[0m'
 fi
 
-mkdir -p "$REPO_DIR/.work"
-: > "$LOG"
-
 say()  { printf '%s\n' "$*"; }
 step() { STEP=$((STEP+1)); printf '\n%s[%d/%d]%s %s\n' "$C" "$STEP" "$TOTAL" "$N" "$*"; }
 info() { printf '    %s\n' "$*"; }
@@ -73,6 +70,10 @@ if [ "$(id -u)" -ne 0 ]; then
     say "    su -c 'bash $REPO_DIR/install.sh'"
     exit 1
 fi
+
+# 日志目录与文件只在确认是 root 之后才创建，避免非 root 运行留下空目录
+mkdir -p "$REPO_DIR/.work"
+: > "$LOG"
 
 printf '%s\n' "${B}============================================================${N}"
 printf '%s\n' "${B}  CMP30HX on Linux — 一键安装${N}"
@@ -451,7 +452,7 @@ if [ "$NEED_REBOOT" -eq 1 ]; then
         reboot
     else
         say "  现在重启：sudo reboot"
-        say "  自定义重启命令已设置：REBOOT=1 sudo ./install.sh 会自动重启"
+        say "  想让它自动重启：REBOOT=1 sudo ./install.sh"
     fi
 else
     printf '%s============================================================%s\n' "$G" "$N"
