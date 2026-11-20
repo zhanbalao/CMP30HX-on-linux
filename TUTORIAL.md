@@ -57,6 +57,17 @@ git clone https://github.com/<你的用户名>/CMP30HX-on-linux.git
 
 没有 git 的话先装：`sudo apt install -y git`
 
+### （可选）把官方驱动包放进仓库根目录
+
+如果你已经下载过 `NVIDIA-Linux-x86_64-615.78.08.run`，把它复制到克隆出来的目录里，
+安装时就**不会联网**（否则脚本会自己去下载约 505 MB）：
+
+```bash
+cp ~/下载/NVIDIA-Linux-x86_64-615.78.08.run ~/CMP30HX-on-linux/
+```
+
+（U 盘里的也可以，直接 `cp` 过去。文件名必须是 `NVIDIA-Linux-x86_64-615.78.08.run`。）
+
 ---
 
 ## 第 3 步：进仓库目录，用 root 运行安装脚本
@@ -79,7 +90,7 @@ sudo ./install.sh
 | 1 | 检查架构、内核、头文件 |
 | 2 | 从 GitHub 取回驱动源码和补丁 |
 | 3 | 检测并安装编译依赖（gcc、dkms、binutils、内核头文件等，按发行版自动选包名） |
-| 4 | 获取 NVIDIA 615.78.08 官方包（优先用本地已有的，否则下载约 505 MB） |
+| 4 | 获取 NVIDIA 615.78.08 官方包：仓库根目录有就用（离线），没有才自动下载 |
 | 5 | 打 CMP 30HX 补丁，编译 4 个内核模块 |
 | 6 | 安装用户态库 + 内核模块，屏蔽 nouveau |
 | 7 | 加载驱动并跑 `nvidia-smi` 验证 |

@@ -1,7 +1,9 @@
-# build workspace (official .run, extracted sources, staged headers)
+# 构建工作区（解压出的源码、组装的头文件树）
 .work/
-# build output
+# 构建产物
 dist/
-# the official driver package is never committed
-*.run
-*.run.*
+
+# 官方驱动包：默认放在仓库根目录（见 README「离线安装」），
+# 是否提交到 git 由你自己决定——注意 505MB 超过 GitHub 单文件 100MB 上限，
+# 建议用 Release 附件而不是直接 commit。
+#NVIDIA-Linux-x86_64-*.run

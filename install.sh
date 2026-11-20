@@ -294,21 +294,59 @@ step
 say "准备 NVIDIA 615.78.08 官方驱动包"
 
 RUN_NAME="NVIDIA-Linux-x86_64-615.78.08.run"
-RUN_URL="https://cn.download.nvidia.com/XFree86/Linux-x86_64/615.78.08/$RUN_NAME"
+RUN_VERSION=615.78.08
+RUN_URL="https://cn.download.nvidia.com/XFree86/Linux-x86_64/$RUN_VERSION/$RUN_NAME"
+
+# 本仓库的 GitHub 地址（用于找 Release 附件），可用 REPO_SLUG 覆盖
+detect_repo_slug() {
+    if [ -n "${REPO_SLUG:-}" ]; then echo "$REPO_SLUG"; return; fi
+    local remote
+    remote=$(git -C "$REPO_DIR" config --get remote.origin.url 2>/dev/null || true)
+    [ -n "$remote" ] || return 0
+    printf '%s\n' "$remote" |
+        sed -e 's#^git@github\.com:#https://github.com/#' -e 's#\.git$##' -e 's#/*$##'
+}
+REPO_SLUG=$(detect_repo_slug)
+RELEASE_URL=""
+if [ -n "$REPO_SLUG" ]; then
+    if [ -n "${RELEASE_TAG:-}" ]; then
+        RELEASE_URL="https://github.com/$REPO_SLUG/releases/download/$RELEASE_TAG/$RUN_NAME"
+    else
+        RELEASE_URL="https://github.com/$REPO_SLUG/releases/latest/download/$RUN_NAME"
+    fi
+fi
 WORK=$REPO_DIR/.work
 RUNFILE=""
 
+# 搜索顺序：仓库根目录优先（用户把 .run 放进克隆目录即可离线安装），
+# 其次是工作目录与常见下载位置、挂载的 U 盘。
+# 只要文件存在就认，大小/完整性在下面单独校验并给出明确错误，避免静默跳过。
 for cand in "$REPO_DIR/$RUN_NAME" "$WORK/$RUN_NAME" "$HOME/$RUN_NAME" "/root/$RUN_NAME" \
             "$HOME/Downloads/$RUN_NAME" "$HOME/下载/$RUN_NAME" \
             "/home/${SUDO_USER:-root}/Downloads/$RUN_NAME" \
             /run/media/*/*/*/"$RUN_NAME" /run/media/*/"$RUN_NAME" /media/*/*/"$RUN_NAME"; do
-    if [ -f "$cand" ] && [ "$(stat -c %s "$cand" 2>/dev/null || echo 0)" -gt 400000000 ]; then
+    if [ -f "$cand" ]; then
         RUNFILE=$cand; break
     fi
 done
 
+# 校验：大小下限（官方包约 505MB）+ 文件头（自解压 shell 脚本）
 if [ -n "$RUNFILE" ]; then
-    ok "使用本地驱动包：$RUNFILE"
+    RSIZE=$(stat -c %s "$RUNFILE" 2>/dev/null || echo 0)
+    if [ "$RSIZE" -lt 400000000 ]; then
+        fail "驱动包不完整：$RUNFILE（$((RSIZE/1048576)) MB，官方约 505 MB）
+  请重新下载完整文件，或删除后让脚本自动下载：
+      rm -f $RUNFILE"
+    fi
+    if ! head -c 2 "$RUNFILE" | grep -q '#!'; then
+        fail "驱动包格式不对（不是自解压脚本）：$RUNFILE
+  可能是 HTML 错误页或压缩包改名，请用官方 NVIDIA-Linux-x86_64-$RUN_VERSION.run"
+    fi
+    ok "本地驱动包校验通过：$((RSIZE/1048576)) MB"
+fi
+
+if [ -n "$RUNFILE" ]; then
+    ok "使用仓库/本地驱动包（离线模式，不联网）：$RUNFILE"
     if [ "$RUNFILE" != "$WORK/$RUN_NAME" ]; then
         mkdir -p "$WORK"
         info "复制到工作目录（避免 U 盘/FUSE 上执行安装器）"
@@ -325,15 +363,23 @@ else
             wget -q --tries=3 -O "$WORK/$RUN_NAME.part" "$1"
         fi
     }
-    dl "$RUN_URL" || dl "https://us.download.nvidia.com/XFree86/Linux-x86_64/615.78.08/$RUN_NAME" ||
-    dl "https://international.download.nvidia.com/XFree86/Linux-x86_64/615.78.08/$RUN_NAME" ||
-    fail "驱动包下载失败。
-  可手动下载后放到仓库目录再重跑：
-      $RUN_URL
-  离线机器：把 $RUN_NAME 放到 $(pwd)/ 下即可"
+    # 优先用本仓库 Release 附件（速度快、不依赖 NVIDIA CDN，也让镜像站可用），
+    # 失败再回退到 NVIDIA 官方源
+    {
+        [ -n "$RELEASE_URL" ] && dl "$RELEASE_URL"
+    } ||
+    dl "$RUN_URL" || dl "https://us.download.nvidia.com/XFree86/Linux-x86_64/$RUN_VERSION/$RUN_NAME" ||
+    dl "https://international.download.nvidia.com/XFree86/Linux-x86_64/$RUN_VERSION/$RUN_NAME" ||
+    fail "驱动包下载失败（本仓库 Release 和 NVIDIA 官方源都不可达）。
+  解决办法：
+    1) 手动下载后放到仓库目录再重跑：
+         $RUN_URL
+    2) 离线机器：把 $RUN_NAME 放到 $REPO_DIR/ 下
+    3) 给本仓库传一份 Release 附件（见 README「发布 Release」）：
+         gh release create $RUN_VERSION ./$RUN_NAME"
     mv -f "$WORK/$RUN_NAME.part" "$WORK/$RUN_NAME"
     RUNFILE=$WORK/$RUN_NAME
-    ok "下载完成"
+    ok "下载完成：$(stat -c %s "$RUNFILE" | awk '{printf "%.0f MB", $1/1048576}')"
 fi
 chmod 755 "$RUNFILE"
 

@@ -95,8 +95,19 @@ Encoder / Decoder   : 可用（0% 占用，未被屏蔽）
 ```bash
 git clone https://github.com/YOUR_GITHUB_USER/CMP30HX-on-linux.git
 cd CMP30HX-on-linux
+
+# 可选：把官方驱动包放到仓库根目录，安装时就不联网下载（推荐）
+#   cp ~/下载/NVIDIA-Linux-x86_64-615.78.08.run .
+
 sudo ./install.sh
 ```
+
+`install.sh` 优先使用**仓库根目录**里的 `NVIDIA-Linux-x86_64-615.78.08.run`：
+
+- 放好了 → 直接离线使用，不联网；
+- 没放 → 依次尝试本仓库 Release 附件、NVIDIA 官方源（国内 CDN → 美国 → 国际）。
+
+驱动包会被校验（大小需约 505 MB、必须是自解压脚本），不合格会明确报错而不是静默跳过。
 
 脚本会自己检测并完成全部工作：
 
