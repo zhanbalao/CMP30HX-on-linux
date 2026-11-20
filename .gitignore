@@ -3,7 +3,6 @@
 # 构建产物
 dist/
 
-# 官方驱动包：默认放在仓库根目录（见 README「离线安装」），
-# 是否提交到 git 由你自己决定——注意 505MB 超过 GitHub 单文件 100MB 上限，
-# 建议用 Release 附件而不是直接 commit。
-#NVIDIA-Linux-x86_64-*.run
+# 官方驱动包：放在仓库根目录供本地离线安装，但 505 MB 超过 GitHub 的
+# 100 MB 单文件上限，不能提交。需要分发时用 Release 附件，见 README。
+NVIDIA-Linux-x86_64-*.run

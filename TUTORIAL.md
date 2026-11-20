@@ -48,7 +48,7 @@ ls /usr/src/linux-headers-$(uname -r)/ 2>/dev/null || echo "头文件没装（�
 
 ```bash
 cd ~
-git clone https://github.com/<你的用户名>/CMP30HX-on-linux.git
+git clone https://github.com/zhanbalao/CMP30HX-on-linux.git
 ```
 
 没有 git 的话先装：`sudo apt install -y git`

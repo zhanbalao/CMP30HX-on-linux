@@ -10,7 +10,7 @@
 
 ```bash
 # 1. 克隆仓库
-git clone https://github.com/YOUR_GITHUB_USER/CMP30HX-on-linux.git
+git clone https://github.com/zhanbalao/CMP30HX-on-linux.git
 cd CMP30HX-on-linux
 
 # 2. 把官方驱动包放进仓库根目录（离线安装，不联网）

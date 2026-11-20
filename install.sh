@@ -3,7 +3,7 @@
 #  install.sh — CMP30HX on Linux 一键安装（以 root 在仓库目录里运行）
 #
 #  推荐用法：
-#      git clone https://github.com/YOUR_GITHUB_USER/CMP30HX-on-linux.git
+#      git clone https://github.com/zhanbalao/CMP30HX-on-linux.git
 #      cd CMP30HX-on-linux
 #      sudo ./install.sh            # 或者直接 sudo bash install.sh
 #
