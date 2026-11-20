@@ -90,19 +90,23 @@ Encoder / Decoder   : 可用（0% 占用，未被屏蔽）
 
 ## 一键安装
 
-**新手请直接看 [TUTORIAL.md](TUTORIAL.md)（带截图式步骤的完整安装教程）。**
+**新手请直接看 [TUTORIAL.md](TUTORIAL.md)（带步骤截图式说明的完整安装教程）。**
 
 ```bash
-# 1. 内核头文件
-sudo apt install -y linux-headers-$(uname -r)
-
-# 2. 下载安装脚本（不要用 curl | bash，sudo/apt 提示会读不到输入）
-curl -fsSL -o ~/install.sh \
-  https://raw.githubusercontent.com/YOUR_GITHUB_USER/CMP30HX-on-linux/main/install.sh
-
-# 3. 一键安装（自动装依赖、下载驱动、打补丁、编译、安装、加载）
-sudo bash ~/install.sh
+git clone https://github.com/YOUR_GITHUB_USER/CMP30HX-on-linux.git
+cd CMP30HX-on-linux
+sudo ./install.sh
 ```
+
+脚本会自己检测并完成全部工作：
+
+1. 识别发行版 / 包管理器 / 架构 / 内核，检查 Secure Boot
+2. 安装缺失的构建依赖（apt / dnf / pacman / zypper / apk）
+3. 安装匹配当前内核的头文件
+4. 取用本地已有的 `.run`，没有才下载（离线可用）
+5. 打 CMP 30HX 补丁、编译 4 个内核模块
+6. 安装用户态库 + 内核模块，屏蔽 nouveau（initramfs + grub）
+7. 能加载就立即验证 `nvidia-smi`，需要重启则明确列出重启后的命令
 
 首次安装后如果提示需要重启（nouveau 在启动早期就加载了），重启一次即可：
 
@@ -110,6 +114,9 @@ sudo bash ~/install.sh
 sudo reboot
 sudo modprobe nvidia && sudo modprobe nvidia-uvm && nvidia-smi
 ```
+
+常用开关：`FORCE=1` 强制重装、`KVER=<版本>` 指定内核、`SKIP_DEPS=1` 跳过依赖安装、
+`REBOOT=1` 需要时自动重启、`NO_COLOR=1` 关闭颜色。卸载用 `sudo ./uninstall.sh`。
 
 ## 从源码构建（进阶，不需要 root）
 

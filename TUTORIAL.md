@@ -48,29 +48,29 @@ ls /usr/src/linux-headers-$(uname -r)/Makefile
 
 ---
 
-## 第 2 步：下载安装脚本
+## 第 2 步：克隆仓库
 
 ```bash
 cd ~
-curl -fsSL -o install.sh \
-  https://raw.githubusercontent.com/<你的用户名>/CMP30HX-on-linux/main/install.sh
+git clone https://github.com/<你的用户名>/CMP30HX-on-linux.git
 ```
 
-> ⚠️ **不要**用 `curl ... | bash` 直接执行。那种方式下 sudo 和 apt 的密码提示读不到键盘输入，会卡住或失败。
-
-看一眼脚本内容（可选，但建议）：
-
-```bash
-less install.sh
-```
+没有 git 的话先装：`sudo apt install -y git`
 
 ---
 
-## 第 3 步：一键安装
+## 第 3 步：进仓库目录，用 root 运行安装脚本
 
 ```bash
-sudo bash install.sh
+cd ~/CMP30HX-on-linux
+sudo ./install.sh
 ```
+
+> 如果 `sudo ./install.sh` 提示没有执行权限，用 `sudo bash install.sh`。
+>
+> 也可以直接 `sudo su` 切到 root，再 `cd` 进这个目录跑 `./install.sh`。
+
+脚本会自己检测环境，缺什么装什么，你只需要在 sudo / apt 提示时确认。
 
 脚本会自动完成：
 
@@ -78,8 +78,8 @@ sudo bash install.sh
 |---|---|
 | 1 | 检查架构、内核、头文件 |
 | 2 | 从 GitHub 取回驱动源码和补丁 |
-| 3 | 安装编译依赖（gcc、dkms、binutils 等） |
-| 4 | 下载 NVIDIA 615.78.08 官方包（约 505 MB） |
+| 3 | 检测并安装编译依赖（gcc、dkms、binutils、内核头文件等，按发行版自动选包名） |
+| 4 | 获取 NVIDIA 615.78.08 官方包（优先用本地已有的，否则下载约 505 MB） |
 | 5 | 打 CMP 30HX 补丁，编译 4 个内核模块 |
 | 6 | 安装用户态库 + 内核模块，屏蔽 nouveau |
 | 7 | 加载驱动并跑 `nvidia-smi` 验证 |
