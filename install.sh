@@ -297,7 +297,9 @@ info "脚本直接使用当前目录的仓库，不会重新 clone / pull"
 
 RUN_NAME="NVIDIA-Linux-x86_64-615.78.08.run"
 RUN_VERSION=615.78.08
-RUN_URL="https://cn.download.nvidia.com/XFree86/Linux-x86_64/$RUN_VERSION/$RUN_NAME"
+# 官方唯一可用的下载地址：实测 cn/us/international 前缀都会 301 到错误页，
+# 只有 download.nvidia.com 返回真实文件（HTTP 200, 529834675 字节）。
+RUN_URL="https://download.nvidia.com/XFree86/Linux-x86_64/$RUN_VERSION/$RUN_NAME"
 
 # 本仓库的 GitHub 地址（用于找 Release 附件），可用 REPO_SLUG 覆盖
 detect_repo_slug() {
@@ -371,8 +373,7 @@ else
     {
         [ -n "$RELEASE_URL" ] && dl "$RELEASE_URL"
     } ||
-    dl "$RUN_URL" || dl "https://us.download.nvidia.com/XFree86/Linux-x86_64/$RUN_VERSION/$RUN_NAME" ||
-    dl "https://international.download.nvidia.com/XFree86/Linux-x86_64/$RUN_VERSION/$RUN_NAME" ||
+    dl "$RUN_URL" ||
     fail "驱动包下载失败（本仓库 Release 和 NVIDIA 官方源都不可达）。
   解决办法：
     1) 手动下载后放到仓库目录再重跑：

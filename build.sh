@@ -25,7 +25,8 @@ set -euo pipefail
 VERSION="615.78.08"
 REPO_DIR=$(cd "$(dirname "$0")" && pwd)
 RUN_NAME="NVIDIA-Linux-x86_64-${VERSION}.run"
-RUN_URL="https://cn.download.nvidia.com/XFree86/Linux-x86_64/${VERSION}/${RUN_NAME}"
+# 官方下载地址（cn/us/international 前缀不可用，只有这个返回真实文件）
+RUN_URL="https://download.nvidia.com/XFree86/Linux-x86_64/${VERSION}/${RUN_NAME}"
 WORK=${WORK:-$REPO_DIR/.work}
 SRC=$WORK/nvidia
 PATCH=${PATCH:-$REPO_DIR/patches/30hx-mod.patch}
