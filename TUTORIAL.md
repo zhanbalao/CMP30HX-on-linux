@@ -31,20 +31,16 @@ uname -r        # 记下内核版本，例如 7.2.15+kali-amd64
 
 ---
 
-## 第 1 步：装上内核头文件（编译的必要条件）
+## 第 1 步：确认系统（可选）
+
+这一步只是确认一下，**不需要手动装任何软件**，脚本会自己搞定内核头文件和编译工具：
 
 ```bash
-sudo apt update
-sudo apt install -y linux-headers-$(uname -r)
+uname -r                       # 记下内核版本
+ls /usr/src/linux-headers-$(uname -r)/ 2>/dev/null || echo "头文件没装（没关系，脚本会装）"
 ```
 
-验证：
-
-```bash
-ls /usr/src/linux-headers-$(uname -r)/Makefile
-```
-
-能列出来就说明头文件齐了。
+真正需要提前准备的只有第 2 步的驱动包。
 
 ---
 
@@ -57,31 +53,38 @@ git clone https://github.com/<你的用户名>/CMP30HX-on-linux.git
 
 没有 git 的话先装：`sudo apt install -y git`
 
-### （可选）把官方驱动包放进仓库根目录
+### 把官方驱动包放进仓库根目录（推荐）
 
-如果你已经下载过 `NVIDIA-Linux-x86_64-615.78.08.run`，把它复制到克隆出来的目录里，
-安装时就**不会联网**（否则脚本会自己去下载约 505 MB）：
+从 [NVIDIA 官网](https://www.nvidia.com/en-us/drivers/) 下载
+`NVIDIA-Linux-x86_64-615.78.08.run`，复制到克隆出来的目录里，安装时就**不会联网**
+（没放的话脚本会自己下载约 505 MB）：
 
 ```bash
 cp ~/下载/NVIDIA-Linux-x86_64-615.78.08.run ~/CMP30HX-on-linux/
+ls -lh ~/CMP30HX-on-linux/*.run      # 确认是 505M 左右
 ```
 
-（U 盘里的也可以，直接 `cp` 过去。文件名必须是 `NVIDIA-Linux-x86_64-615.78.08.run`。）
+（U 盘里的也可以直接 `cp` 过去。文件名必须一字不差是 `NVIDIA-Linux-x86_64-615.78.08.run`。）
 
 ---
 
-## 第 3 步：进仓库目录，用 root 运行安装脚本
+## 第 3 步：切到 root，进仓库目录，运行脚本
 
 ```bash
-cd ~/CMP30HX-on-linux
-sudo ./install.sh
+# 切到 root（会让你输密码）
+sudo -i
+
+# 进入仓库目录（换成你自己的路径）
+cd /home/你的用户名/CMP30HX-on-linux
+
+# 一键安装
+./install.sh
 ```
 
-> 如果 `sudo ./install.sh` 提示没有执行权限，用 `sudo bash install.sh`。
->
-> 也可以直接 `sudo su` 切到 root，再 `cd` 进这个目录跑 `./install.sh`。
+> 如果提示 `Permission denied`，用 `bash install.sh`。
+> 如果你习惯不切 root，`sudo ./install.sh` 效果完全一样。
 
-脚本会自己检测环境，缺什么装什么，你只需要在 sudo / apt 提示时确认。
+脚本会自己检测环境、缺什么装什么，你不需要手动 `apt install` 任何东西。
 
 脚本会自动完成：
 
